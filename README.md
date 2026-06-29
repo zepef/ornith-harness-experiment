@@ -1,62 +1,62 @@
 # Ornith Harness Experiment
 
-Évaluation du modèle **`ornith:35b`** (Ollama, local) — annoncé « niveau Opus 4.7 » — en le mettant
-dans un **harnais compile-test** piloté par Claude (Opus 4.8 dans Claude Code), avec un compilateur
-comme juge. Tâche : émuler `printf()` en assembleur x86-64.
+Evaluating the open-source coding model **`ornith:35b`** (Ollama, local) — advertised as
+"Opus-4.7-level" — by putting it in a **compile-test harness** driven by Claude (Opus 4.8 in
+Claude Code), with a compiler as the judge. Task: emulate `printf()` in x86-64 assembly.
 
-**Verdict empirique :** le harnais le fait passer de « n'assemble pas » → « compile » → structure
-correcte, **mais il n'atteint jamais un `printf` juste**. Il corrige les fixes *mécaniques*
-(`;`→`#`, poser un registre manquant) et **diverge sur les fixes *structurels*** (l'ABI varargs)
-*même donnés mot pour mot*. « Niveau Opus 4.7 » = erreur de catégorie : Qwen-MoE 34,7B quantifié Q4,
-sous **licence MIT** (≠ université MIT).
+**Empirical verdict:** the harness moves it from "won't assemble" → "compiles" → correct
+structure, **but it never reaches a correct `printf`**. It fixes *mechanical* problems
+(`;`→`#`, set a missing register) and **diverges on *structural* ones** (the varargs ABI)
+*even when handed the fix verbatim*. "Opus-4.7-level" is a category error: a quantized
+34.7B Qwen MoE under the **MIT license** (not MIT the university).
 
 ---
 
-## Contenu
+## Contents
 
-| Fichier | Description |
+| File | Description |
 |---|---|
-| `conversation.md` | Transcript de la session (critique printf → enquête Ornith → harnais → article). |
-| `ornith-harness-medium.md` | Article Medium prêt à publier (EN, ~870 mots) : *« The Compiler Doesn't Lie ».* |
-| **`harness/`** | Le code du harnais. |
-| `harness/chat.py` | Driver : pousse les messages à l'API Ollama `/api/chat`, garde le contexte, journalise pensée/réponse. |
-| `harness/prompt1.txt` | Le prompt de tâche (émuler printf, contraintes ABI + toolchain GAS). |
-| `harness/ornith-dialogue.json` | Dialogue intégral Claude↔Ornith (tous les tours + feedbacks réinjectés). |
-| `harness/ledger.txt` | Stats par itération (wall, tokens, longueur de pensée, code émis, issue). |
-| **`reference-printf/`** | L'implémentation de référence **qui marche** (écrite par Claude). |
-| `reference-printf/myprintf.s` | printf x86-64 (GAS, syntaxe Intel) : `%s %d %c %%`, INT_MIN, varargs spillés. |
-| `reference-printf/test.c` | Test C + sortie attendue. |
-| **`ornith-output/`** | La meilleure tentative d'Ornith + preuves. |
-| `ornith-output/ornith-sol.s` | Dernière sortie d'Ornith (régression iter 5 : n'assemble pas). |
-| `ornith-output/run_out.txt` | Sortie runtime erronée (valeurs d'args fausses). |
-| `ornith-output/last_build_errors.txt` | Erreurs d'assemblage de la dernière itération. |
-| **`critique-demo/`** | Démonstration que la « Correction B » d'une critique tierce ne tient pas. |
-| `critique-demo/correctionB.s` | « Correction B » transcrite : ne s'assemble pas (`mov rdx, edx`). |
-| `critique-demo/demoB.s`, `mainB.c` | Version réparée *a minima* → imprime du binaire au lieu de « 42 » (rax jamais chargé). |
+| `conversation.md` | Session transcript (printf critique → Ornith investigation → harness → article). |
+| `ornith-harness-medium.md` | Medium-ready article (EN, ~870 words): *"The Compiler Doesn't Lie".* |
+| **`harness/`** | The harness code. |
+| `harness/chat.py` | Driver: posts messages to the Ollama `/api/chat` endpoint, keeps context, logs thinking/response. |
+| `harness/prompt1.txt` | The task prompt (emulate printf, ABI + GAS toolchain constraints). |
+| `harness/ornith-dialogue.json` | Full Claude↔Ornith dialogue (every turn + re-injected feedback). |
+| `harness/ledger.txt` | Per-iteration stats (wall time, tokens, thinking length, code emitted, outcome). |
+| **`reference-printf/`** | The reference implementation that **works** (written by Claude). |
+| `reference-printf/myprintf.s` | x86-64 printf (GAS, Intel syntax): `%s %d %c %%`, INT_MIN, spilled varargs. |
+| `reference-printf/test.c` | C test + expected output. |
+| **`ornith-output/`** | Ornith's best attempt + evidence. |
+| `ornith-output/ornith-sol.s` | Ornith's last output (iteration 5 regression: does not assemble). |
+| `ornith-output/run_out.txt` | Wrong runtime output (incorrect argument values). |
+| `ornith-output/last_build_errors.txt` | Assembler errors from the last iteration. |
+| **`critique-demo/`** | Demonstration that a third-party critique's "Correction B" does not hold up. |
+| `critique-demo/correctionB.s` | The "Correction B" transcribed: does not assemble (`mov rdx, edx`). |
+| `critique-demo/demoB.s`, `mainB.c` | Minimally-repaired version → prints garbage instead of "42" (rax never loaded). |
 
 ---
 
-## Reproduire
+## Reproduce
 
-**Le harnais** (nécessite Ollama avec `ornith:35b` et `OLLAMA_HOST` pointant sur le serveur) :
+**The harness** (requires Ollama with `ornith:35b`, and `OLLAMA_HOST` pointing at the server):
 ```bash
 cd harness
-# seed conv.json avec prompt1.txt, puis :
-python3 chat.py conv.json        # un tour ; réinjecter les erreurs et relancer
+# seed conv.json from prompt1.txt, then:
+python3 chat.py conv.json        # one turn; re-inject the errors and run again
 ```
-Note : `chat.py` lit le serveur depuis la variable d'environnement `OLLAMA_HOST`
-(défaut `http://127.0.0.1:11434`). `ornith` est un modèle de raisonnement : prévoir un `num_predict`
-élevé (≥48k) sinon il n'atteint jamais sa réponse (tout part en `thinking`).
+Note: `chat.py` reads the server from the `OLLAMA_HOST` environment variable
+(default `http://127.0.0.1:11434`). `ornith` is a reasoning model: budget a high `num_predict`
+(≥48k) or it never reaches its answer (everything goes into `thinking`).
 
-**L'implémentation de référence** (qui marche) :
+**The reference implementation** (which works):
 ```bash
 cd reference-printf
 gcc -no-pie test.c myprintf.s -o t && ./t
 ```
 
-**La « Correction B » cassée** :
+**The broken "Correction B":**
 ```bash
 cd critique-demo
 gcc -c correctionB.s -o correctionB.o     # -> Error: operand type mismatch (mov rdx, edx)
-gcc -no-pie mainB.c demoB.s -o demoB && ./demoB   # entrée 42 -> binaire poubelle
+gcc -no-pie mainB.c demoB.s -o demoB && ./demoB   # input 42 -> binary garbage
 ```

@@ -3,12 +3,12 @@
 .text
 .global run_demo
 
-# "Correction B" avec le SEUL fix de l'erreur d'assemblage (movzx au lieu de mov),
-# appliquee a la valeur 42, puis on imprime le buffer (rcx) sur length (rdx).
+# "Correction B" with ONLY the assembler-error fixed (mov edx,edx instead of mov rdx,edx),
+# applied to the value 42, then we print the buffer (rcx) with length (rdx).
 run_demo:
     push    rbp
     mov     rbp, rsp
-    mov     rdi, 42          # <<< la valeur a convertir est 42
+    mov     rdi, 42          # <<< the value to convert is 42
     sub     rsp, 32
     lea     rcx, [rsp+31]
     xor     edx, edx
@@ -20,17 +20,17 @@ run_demo:
 .p:
     mov     rbx, 10
 .l:
-    xor     edx, edx         # ecrase le "compteur de longueur"...
-    div     rbx              # ...et div divise rdx:rax — or rax n'a JAMAIS recu rdi(=42)
+    xor     edx, edx         # wipes the "length counter"...
+    div     rbx              # ...and div divides rdx:rax — but rax NEVER received rdi(=42)
     add     dl, '0'
     dec     rcx
-    inc     edx              # corrompt le chiffre stocke (digit+1)
+    inc     edx              # corrupts the stored digit (digit+1)
     mov     [rcx], dl
     test    rax, rax
     jnz     .l
-    mov     edx, edx         # zero-extend edx->rdx (movzx 32->64 illegal aussi)
+    mov     edx, edx         # zero-extend edx->rdx (movzx 32->64 is illegal too)
 
-    mov     rsi, rcx         # imprimer ce que la "Correction B" a produit
+    mov     rsi, rcx         # print whatever "Correction B" produced
     mov     rax, 1
     mov     rdi, 1
     syscall

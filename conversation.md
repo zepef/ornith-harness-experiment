@@ -1,28 +1,28 @@
-# Conversation — Évaluation du modèle Ornith via un harnais compile-test
+# Conversation — Evaluating the Ornith model with a compile-test harness
 
-*Transcript reconstitué fidèlement à partir de la session du 2026-06-29. Agent : Claude (Opus 4.8) dans Claude Code. Modèle évalué : `ornith:35b` (Ollama, local).*
-
----
-
-## 1. (Section retirée de la version publique)
-
-> La session s'est ouverte sur une demande d'avis concernant un résumé de session injecté
-> par le hook `SessionStart` — il portait sur **un projet totalement différent**, sans aucun
-> rapport avec cette expérience. Ce contenu a été retiré de la version publique du transcript.
+*Transcript faithfully reconstructed from the 2026-06-29 session. Agent: Claude (Opus 4.8) in Claude Code. Model under test: `ornith:35b` (Ollama, local).*
 
 ---
 
-## 2. « create an assembly language routine to emulate printf() »
+## 1. (Section removed from the public version)
 
-**Utilisateur :** colle la sortie d'un autre modèle (prompt `>>>`, balises `Thinking… …done thinking.`) à qui on a demandé d'écrire un `printf()` en assembleur. La sortie est un brouillon non convergent : commentaires `REWRITE for simplicity`, `DECISION:`, `COMPROMISE`, trois versions abandonnées, `_print_int` cassé, accès aux args en `[rbp+16]` (style x86-32).
+> The session opened with a request for feedback on a session summary injected by the
+> `SessionStart` hook — it concerned **a completely different project**, unrelated to this
+> experiment. That content has been removed from the public version of the transcript.
 
-**Claude :** J'ai reconnu une sortie de modèle, et — comme pour le résumé — donné mon avis **en l'étayant par du code qui compile et tourne**.
+---
 
-`nasm` était absent ; j'ai écrit la version en **assembleur GNU (syntaxe Intel)**, assemblée avec `gcc`.
+## 2. "create an assembly language routine to emulate printf()"
 
-Fichier `myprintf.s` (extrait clé) : gestion correcte des varargs **par registres** (rsi/rdx/rcx/r8/r9 spillés dans une zone de sauvegarde), `%s`, `%d` (signé, INT_MIN), `%c`, `%%`, ré-émission verbatim d'un spécificateur inconnu, sortie caractère par caractère via `write(2)`.
+**User:** pastes the output of another model (prompt `>>>`, `Thinking… …done thinking.` markers) that was asked to write a `printf()` in assembly. The output is a non-converging draft: comments like `REWRITE for simplicity`, `DECISION:`, `COMPROMISE`, three abandoned versions, a broken `_print_int`, args accessed via `[rbp+16]` (x86-32 style).
 
-Build et exécution réels :
+**Claude:** I recognized a model's output and — as with the summary — gave my opinion **backed by code that compiles and runs**.
+
+`nasm` wasn't available, so I wrote the version in **GNU assembler (Intel syntax)**, assembled with `gcc`.
+
+`myprintf.s` (key points): correct varargs handling **via registers** (rsi/rdx/rcx/r8/r9 spilled into a save area), `%s`, `%d` (signed, INT_MIN), `%c`, `%%`, verbatim re-emission of an unknown specifier, character-by-character output via `write(2)`.
+
+Real build and run:
 
 ```
 === BUILD OK (no warnings) ===
@@ -31,102 +31,102 @@ neg=-12345  zero=0  intmin=-2147483648  100%
 char=X  unknown=%q  ok
 ```
 
-Avertissement linker « executable stack » corrigé en ajoutant `.section .note.GNU-stack,"",@progbits`.
+The "executable stack" linker warning was fixed by adding `.section .note.GNU-stack,"",@progbits`.
 
 ---
 
-## 3. « Et que penses-tu de cette critique ? »
+## 3. "And what do you think of this critique?"
 
-**Utilisateur :** « Et que penses-tu de cette critique ? : » *(rien après les deux-points)*
+**User:** "And what do you think of this critique? :" *(nothing after the colon)*
 
-**Claude :** Le contenu était manquant (copier-coller vide). J'ai demandé de recoller le texte, en précisant que je pouvais juger soit une critique de ma version, soit une critique tierce.
+**Claude:** The content was missing (empty paste). I asked for the text, noting I could judge either a critique of my version or a third-party critique.
 
 ---
 
-## 4. Évaluation de la critique tierce
+## 4. Evaluating the third-party critique
 
-**Utilisateur :** colle une « Critique du Code Assembly `my_printf` » (visant le brouillon original) : ABI x86-64 ignoré, fragments incomplets, `_print_int` à longueur cassée, signe négatif erroné, pas de `va_list`, alignement de pile ; puis une section « Corrections » dont une « Correction B » de `_print_int`.
+**User:** pastes a "Critique of the `my_printf` Assembly Code" (targeting the original draft): x86-64 ABI ignored, incomplete fragments, broken length math in `_print_int`, wrong negative-sign handling, no `va_list`, stack alignment; plus a "Corrections" section including a "Correction B" for `_print_int`.
 
-**Claude :** **Bon diagnostic (points 1–5), remède cassé.**
+**Claude:** **Good diagnosis (points 1–5), broken remedy.**
 
-- **Point 6 factuellement faux** : « x86-64 exige la pile alignée 16 octets avant les `syscall` ». Non — l'alignement 16o est requis pour les **`call`** de fonctions (et SSE), **pas** pour l'instruction `syscall`.
-- **« Correction B » testée fidèlement** :
-  - Ne s'assemble pas : `mov rdx, edx` → `operand type mismatch`.
-  - Réparée (le seul fix d'assemblage), sur l'entrée **42**, elle imprime du **binaire poubelle** :
+- **Point 6 is factually wrong:** "x86-64 requires the stack 16-byte aligned before `syscall`." No — 16-byte alignment is required for function **`call`s** (and SSE), **not** for the `syscall` instruction.
+- **"Correction B" tested faithfully:**
+  - Doesn't assemble: `mov rdx, edx` → `operand type mismatch`.
+  - Once repaired (the single assembler fix), on input **42** it prints **binary garbage**:
 
 ```
-entree=42  →  52:9773 �j�  @  ...
+input=42  →  52:9773 �j�  @  ...
 ```
 
-  Parce que `div rbx` divise `rdx:rax`, **or `rax` n'est jamais chargé depuis `rdi`** (la valeur 42 vit dans `rdi`) ; et `rdx`/`edx` est utilisé à la fois comme « compteur de longueur » et comme reste de division — `div` écrit le reste dans `rdx`, les deux s'écrasent. Cerise : `sub rsp,32` … `pop rbp` sans `add rsp,32` → **le bug de pile même qu'elle reproche au code original**.
+  Because `div rbx` divides `rdx:rax`, but **`rax` is never loaded from `rdi`** (the value 42 lives in `rdi`); and `rdx`/`edx` is used both as a "length counter" and as the division remainder — `div` writes the remainder into `rdx`, so the two clobber each other. The cherry: `sub rsp,32` … `pop rbp` without `add rsp,32` → **the very stack bug it criticizes in the original code**.
 
-**Verdict :** compétente pour pointer, incompétente pour réparer. *Critique-théâtre* : ton autoritaire, vrai diagnostic, remède non fonctionnel.
-
----
-
-## 5. « Ce modèle est ORINTH par le MIT, niveau Opus 4.7 — j'en doute »
-
-**Claude :** Doute fondé, sur cette preuve. Réserves : un seul type de tâche (assembleur à la main, niche punitive), je ne connaissais aucun modèle « ORINTH ». Ce qui distingue un modèle frontière, c'est l'**auto-vérification** — précisément ce qui manquait (il n'attrape pas son bug `div`, ni en écrivant ni en critiquant). J'ai proposé un protocole : 4-5 tâches vérifiables, compter les réussites au premier jet.
+**Verdict:** competent at pointing, incompetent at repairing. *Critique theater*: authoritative tone, real diagnosis, non-functional remedy.
 
 ---
 
-## 6. La fiche Ollama : https://ollama.com/library/ornith:35b
+## 5. "This model is ORINTH by MIT, Opus-4.7-level — I doubt it"
 
-**Claude :** Récupéré via WebFetch. Faits réels :
-- **Ornith**, 34,7 B paramètres, base **Qwen** (`archqwen35moe` = Qwen MoE), quantifié Q4_K_M (21 Go).
-- **« MIT » = la licence MIT** (open-source), **pas l'université MIT**. Confusion classique licence ↔ institution. Créateur non nommé.
-- Description : *« A self-improving family of open-source models for agentic coding »*.
-- Claim réel : *SOTA parmi les modèles **open-source comparables*** (Terminal-Bench 2.1, SWE-Bench, NL2Repo, OpenClaw). **Aucune comparaison à Opus/Claude sur la page.**
-
-**Conséquence :** « niveau Opus 4.7 » est une **prémisse fausse et hors-catégorie** (35B ouvert quantifié vs frontière propriétaire). Sa force de benchmark vient en partie du **scaffold agentique** (RL-tuné) : il écrit, exécute, voit l'erreur, recommence. Notre test était one-shot, sans boucle — d'où l'échec. J'ai proposé de le tester **dans sa boucle agentique**.
+**Claude:** The doubt is well-founded, on this evidence. Caveats: a single task type (hand-written assembly, a punishing niche), and I knew of no model called "ORINTH." What distinguishes a frontier model is **self-verification** — precisely what was missing here (it doesn't catch its own `div` bug, neither while writing nor while critiquing). I proposed a protocol: 4–5 verifiable tasks, count first-pass successes.
 
 ---
 
-## 7. « On lui fait passer la tâche printf en mode harnais »
+## 6. The Ollama page: https://ollama.com/library/ornith:35b
 
-**Claude :** J'ai piloté **toute** la boucle moi-même. `ornith:35b` déjà présent dans Ollama. Serveur Ollama sur le **host Windows** (variable `OLLAMA_HOST`, WSL2→host). Pilotage via l'API `/api/chat` (contexte conservé entre tours), modèle gardé chaud.
+**Claude:** Fetched via WebFetch. The actual facts:
+- **Ornith**, 34.7B parameters, base **Qwen** (`archqwen35moe` = Qwen MoE), quantized Q4_K_M (21 GB).
+- **"MIT" = the MIT license** (open-source), **not MIT the university**. Classic license↔institution confusion. Creator not named.
+- Description: *"A self-improving family of open-source models for agentic coding."*
+- Real claim: *SOTA among **comparable open-source models*** (Terminal-Bench 2.1, SWE-Bench, NL2Repo, OpenClaw). **No comparison to Opus/Claude on the page.**
 
-Découvertes techniques :
-- C'est un **modèle de raisonnement** : son template route toute sa sortie dans le canal `thinking` ; `think:false` **est ignoré**. Le `content` (la réponse) n'arrive qu'**après** la fin du raisonnement.
-- Vitesse réelle ~**48 tok/s** (le 3,3 tok/s initial était dominé par le chargement à froid).
-- Sous un plafond de tokens trop bas, il **n'atteint jamais** la réponse (tout part en réflexion).
+**Consequence:** "Opus-4.7-level" is a **false, out-of-category premise** (open quantized 35B vs proprietary frontier). Its benchmark strength comes partly from the **agentic scaffold** (RL-tuned): it writes, runs, sees the error, retries. Our first test was one-shot, no loop — hence the failure. I proposed testing it **inside its agentic loop**.
 
-### Ledger des itérations
+---
 
-| Iter | Réglage / feedback | WALL | tokens | pensée (chars) | code | Résultat |
+## 7. "Let's run the printf task in harness mode"
+
+**Claude:** I drove the **entire** loop myself. `ornith:35b` already present in Ollama. The Ollama server runs on the **Windows host** (`OLLAMA_HOST`, WSL2→host). Driven via the `/api/chat` endpoint (context preserved across turns), model kept warm.
+
+Technical findings:
+- It's a **reasoning model**: its template routes all output into the `thinking` channel; `think:false` **is ignored**. The `content` (the answer) only appears **after** reasoning finishes.
+- Real speed ~**48 tok/s** (the initial 3.3 tok/s was dominated by cold load).
+- Under too small a token cap it **never reaches** the answer (everything goes to thinking).
+
+### Iteration ledger
+
+| Iter | Setting / feedback | WALL | tokens | thinking (chars) | code | Result |
 |---|---|---|---|---|---|---|
-| 1c | nudge « bref » + 12k | 252s | 12000 | 37 313 | 0 | `done=length`, aucun code |
-| 1d | « commit now » + 48k | 1032s | 46 576 | 145 372 | 5818 | **Compile : ÉCHEC** (commentaires NASM `;` en GAS) |
-| 2 | erreurs assembleur exactes | 251s | 12 507 | 30 308 | 5996 | **Compile : OK** ✅ ; runtime : garbage en boucle |
-| 3 | sortie attendue vs réelle | 1168s | 48 000 | 161 704 | 0 | thrash, aucun code |
-| 3b | « commit now » | 622s | 24 915 | 75 290 | 6303 | compile OK ; runtime **identique cassé** |
-| 4 | bug pointé (`rsi`/`rdx` périmés avant `do_write`) | 334s | 5988 | 11 638 | 6850 | **fix appliqué** ✅ structure correcte ; valeurs d'args fausses |
-| 5 | fix donné mot pour mot (spill varargs) | 660s | 14 750 | 34 323 | 7260 | **RÉGRESSE** : adressage illégal `[rbp+8*(ebx-3)]`, **recasse le build** ❌ |
+| 1c | "be brief" nudge + 12k | 252s | 12000 | 37,313 | 0 | `done=length`, no code |
+| 1d | "commit now" + 48k | 1032s | 46,576 | 145,372 | 5818 | **Compile: FAIL** (NASM `;` comments in GAS) |
+| 2 | exact assembler errors | 251s | 12,507 | 30,308 | 5996 | **Compile: OK** ✅; runtime: looping garbage |
+| 3 | expected vs actual output | 1168s | 48,000 | 161,704 | 0 | thrash, no code |
+| 3b | "commit now" | 622s | 24,915 | 75,290 | 6303 | compiles; runtime **identically broken** |
+| 4 | bug pinpointed (`rsi`/`rdx` stale before `do_write`) | 334s | 5988 | 11,638 | 6850 | **fix applied** ✅ correct structure; arg values wrong |
+| 5 | fix given verbatim (spill varargs) | 660s | 14,750 | 34,323 | 7260 | **REGRESSES**: illegal addressing `[rbp+8*(ebx-3)]`, **breaks the build** ❌ |
 
-Meilleur état atteint (iter 4) — littéraux/`%%`/terminaison OK, valeurs fausses :
+Best state reached (iter 4) — literals/`%%`/termination correct, values wrong:
 
 ```
 Hello,  <junk>! Value:  , Negative: 40728379646206 , INT_MIN: ... , Char:  , Percent: %
 ```
 
-**Diagnostic des deux bugs (par Claude) :**
-1. `do_write` fait `syscall` en supposant `rsi`=buffer, `rdx`=longueur, mais les chemins littéraux/`%%`/`%c` ne posaient pas `rsi`/`edx` → réutilisation des valeurs périmées du `%s` précédent (d'où « World » et les pointeurs imprimés). **Iter 4 : fix appliqué.**
-2. Les varargs sont lus dans les **registres vivants** rsi/rdx/rcx/r8/r9, **clobberés immédiatement** (do_write écrase rsi, int_to_str trashe le reste). Fix standard = spiller à l'entrée dans une zone mémoire. **Iter 5 : non appliqué, régression.**
+**Diagnosis of both bugs (by Claude):**
+1. `do_write` does the `syscall` assuming `rsi`=buffer, `rdx`=length, but the literal/`%%`/`%c` paths didn't set `rsi`/`edx` → reuse of the stale values from the previous `%s` (hence "World" and printed pointers). **Iter 4: fix applied.**
+2. The varargs are read from the **live registers** rsi/rdx/rcx/r8/r9, **clobbered immediately** (do_write overwrites rsi, int_to_str trashes the rest). The standard fix is to spill them into a memory area at entry. **Iter 5: not applied, regression.**
 
-**Verdict empirique :** le harnais l'a fait passer de « n'assemble pas » → « compile » → structure correcte, **mais il n'a jamais atteint un `printf` juste**. Il corrige les fixes **mécaniques** (`;`→`#`, poser un registre) et **diverge sur les structurels** (ABI varargs) *même donnés verbatim*. Il ne sait pas s'auto-diagnostiquer.
-
----
-
-## 8. « La technique est très intéressante — on en fait un article Medium »
-
-**Claude :** Questions de cadrage (AskUserQuestion). Réponses : **hybride méthode+récit**, **anglais**, **format court (~700-1000 mots)**.
-
-Article rédigé → `ornith-harness-medium.md` (titre : *« The Compiler Doesn't Lie: How to Actually Test a Coding LLM »*). Colonne vertébrale = la méthode (agent-fort-comme-harnais + compilateur-juge) ; récit Ornith en illustration ; takeaway : *le meilleur benchmark d'un LLM, c'est un autre LLM, une boucle de feedback, et un outil qui refuse d'être impressionné.*
+**Empirical verdict:** the harness moved it from "won't assemble" → "compiles" → correct structure, **but it never reached a correct `printf`**. It fixes **mechanical** problems (`;`→`#`, set a register) and **diverges on structural ones** (the varargs ABI) *even when given them verbatim*. It cannot self-diagnose.
 
 ---
 
-## 9. Sauvegarde
+## 8. "The technique is fascinating — let's make a Medium article"
 
-**Utilisateur :** « Sauvegarde de toute cette conversation dans un fichier md. Créer un nouveau répertoire dans le répertoire project, puis déplace les deux fichiers md que tu as créés et tu y mets le code qui t'a servi à créer le harnais pour contrôler les dires de ornith. »
+**Claude:** Framing questions (AskUserQuestion). Answers: **hybrid method+narrative**, **English**, **short format (~700-1000 words)**.
 
-**Claude :** Ce répertoire (`ornith-harness-experiment/`) — voir `README.md` pour l'index des fichiers.
+Article written → `ornith-harness-medium.md` (title: *"The Compiler Doesn't Lie: How to Actually Test a Coding LLM"*). Backbone = the method (strong-agent-as-harness + compiler-as-judge); the Ornith story as illustration; takeaway: *the most honest LLM benchmark might just be another LLM, a feedback loop, and a tool that refuses to be impressed.*
+
+---
+
+## 9. Saving + publishing
+
+**User:** asked to save the whole conversation to markdown, create a new directory under `projects`, move the two `.md` files there, and add the harness code. Then: create a public GitHub repository.
+
+**Claude:** Created `ornith-harness-experiment/` (see `README.md` for the file index). Before publishing publicly, scanned for sensitive content, removed an unrelated client-project section (the original section 1), genericized an internal IP, then created and pushed the public repo.

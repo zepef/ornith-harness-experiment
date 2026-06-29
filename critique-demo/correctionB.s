@@ -3,7 +3,7 @@
 .text
 .global print_int_buggy
 
-# "Correction B" de la critique, transcrite fidèlement
+# "Correction B" from the critique, transcribed faithfully
 print_int_buggy:
     push    rbp
     mov     rbp, rsp
