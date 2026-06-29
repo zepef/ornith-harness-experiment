@@ -1,0 +1,8 @@
+# Ledger — one line per ornith:35b iteration (Ollama /api/chat)
+iter1c  WALL 252s eval=12000 think_len=37313 resp_len=0 done=length
+iter1d  WALL 1032s eval=46576 think_len=145372 resp_len=5818 done=stop
+iter2   WALL 251s eval=12507 think_len=30308 resp_len=5996 done=stop
+iter3   WALL 1168s eval=48000 think_len=161704 resp_len=0 done=length
+iter3b  WALL 622s eval=24915 think_len=75290 resp_len=6303 done=stop
+iter4   WALL 334s eval=5988 think_len=11638 resp_len=6850 done=stop
+iter5   WALL 660s eval=14750 think_len=34323 resp_len=7260 done=stop

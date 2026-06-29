@@ -1,0 +1,7 @@
+sol.s: Assembler messages:
+sol.s:70: Error: `qword ptr [rbp+8*(ebx - 3)]' is not a valid base/index expression
+sol.s:74: Error: invalid use of register
+sol.s:111: Error: `qword ptr [rbp+8*(ebx - 3)]' is not a valid base/index expression
+sol.s:115: Error: invalid use of register
+sol.s:141: Error: `byte ptr [rbp+8*(ebx - 3)]' is not a valid base/index expression
+sol.s:145: Error: invalid use of register

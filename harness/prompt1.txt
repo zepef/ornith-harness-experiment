@@ -1,0 +1,17 @@
+You are an autonomous coding agent in a compile-test loop. I will assemble, run, and paste back the EXACT output; you then fix any problems. Keep iterating until it builds AND prints correctly.
+
+TASK: Implement `my_printf`, an emulation of C printf, in x86-64 assembly for Linux, following the System V AMD64 ABI. It must correctly handle:
+- literal text
+- %s  (C string)
+- %d  (signed 32-bit integer, including negative numbers and INT_MIN = -2147483648)
+- %c  (character)
+- %%  (a literal percent sign)
+Use the write(2) syscall (syscall number 1) for output. Per the ABI: the format string is in rdi; the variadic arguments are in rsi, rdx, rcx, r8, r9 (first five).
+
+TOOLCHAIN (mandatory — nasm is NOT available):
+- GNU assembler, Intel syntax. Start the file with: .intel_syntax noprefix
+- I build and run with exactly: gcc -no-pie test.c sol.s -o t && ./t
+
+OUTPUT FORMAT (strict): output ONLY two fenced code blocks, nothing else, no commentary:
+1) a ```asm block = the complete contents of sol.s (must define a global `my_printf`)
+2) a ```c block = the complete contents of test.c (a `main` calling my_printf with mixed specifiers, e.g. a string, a positive int, a negative int, INT_MIN, a char, and a literal %%)
